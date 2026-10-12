@@ -24,6 +24,8 @@ export function attachSockets(io, { pulseIntervalMs = 2000, timelineIntervalMs =
         cooldowns: new Map(events.map((event) => [event.clientHash, event.ts])),
         students: new Map(), // clientHash -> Set of socket ids (one student, many tabs)
         hosts: new Set(),
+        // Highest score seen so far; survives the state being dropped and rebuilt.
+        peak: session.peak_score === null ? null : { score: session.peak_score, ts: session.peak_at },
       };
       live.set(session.code, state);
     }
@@ -32,18 +34,29 @@ export function attachSockets(io, { pulseIntervalMs = 2000, timelineIntervalMs =
 
   function pulseOf(state, now = Date.now()) {
     state.events = pruneWindow(state.events, now);
-    return computePulse(state.events, state.students.size, now);
+    const pulse = computePulse(state.events, state.students.size, now);
+    // Every computation (2s pulse, 15s timeline sample, final sample) feeds the
+    // peak, so a spike that rises and falls between two timeline samples is kept.
+    if (pulse.score > (state.peak?.score ?? 0)) state.peak = { score: pulse.score, ts: now };
+    return pulse;
+  }
+
+  function persistPeak(state) {
+    if (state.peak) q.raisePeak.run({ id: state.sessionId, score: state.peak.score, ts: state.peak.ts });
   }
 
   function release(state) {
     if (state.students.size === 0 && state.hosts.size === 0 && live.get(state.code) === state) {
+      persistPeak(state); // the room emptied before the session ended: don't lose the peak
       live.delete(state.code);
     }
   }
 
   const pulseTimer = setInterval(() => {
     for (const state of live.values()) {
-      if (state.hosts.size > 0) io.to(hostRoom(state.code)).emit('pulse:update', pulseOf(state));
+      // Computed even with no host watching, so the peak is tracked regardless.
+      const pulse = pulseOf(state);
+      if (state.hosts.size > 0) io.to(hostRoom(state.code)).emit('pulse:update', pulse);
     }
   }, pulseIntervalMs);
 
@@ -67,6 +80,7 @@ export function attachSockets(io, { pulseIntervalMs = 2000, timelineIntervalMs =
     if (state) {
       // Final sample so even very short sessions have a timeline.
       q.insertTimeline.run(state.sessionId, endedAt, pulseOf(state, endedAt).score);
+      persistPeak(state);
       live.delete(code);
     }
     io.to([studentRoom(code), hostRoom(code)]).emit('session:ended', { code });

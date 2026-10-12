@@ -153,6 +153,42 @@ describe('GET /api/sessions/:code/summary', () => {
     expect(res.body).not.toHaveProperty('host_token_hash');
   });
 
+  it('prefers the stored peak over the sampled timeline', async () => {
+    const { code, hostToken } = await createSession('Spiky');
+    const session = findSession(code);
+    const t0 = session.created_at;
+    // A spike to 90 happened between the 15s samples, which only saw 20 and 40.
+    q.insertTimeline.run(session.id, t0 + 15000, 20);
+    q.insertTimeline.run(session.id, t0 + 30000, 40);
+    q.raisePeak.run({ id: session.id, score: 90, ts: t0 + 22000 });
+
+    const res = await request(app).get(`/api/sessions/${code}/summary`).set('x-host-token', hostToken);
+    expect(res.body).toMatchObject({ peakScore: 90, peakAt: t0 + 22000, avgScore: 30 });
+  });
+
+  it('falls back to the timeline max when no peak is stored, or the stored one is lower', async () => {
+    const { code, hostToken } = await createSession('Legacy');
+    const session = findSession(code);
+    const t0 = session.created_at;
+    q.insertTimeline.run(session.id, t0 + 15000, 35);
+    q.insertTimeline.run(session.id, t0 + 30000, 70);
+    const summary = () => request(app).get(`/api/sessions/${code}/summary`).set('x-host-token', hostToken);
+
+    expect(session.peak_score).toBeNull();
+    expect((await summary()).body).toMatchObject({ peakScore: 70, peakAt: t0 + 30000 });
+
+    q.raisePeak.run({ id: session.id, score: 50, ts: t0 + 5000 });
+    expect((await summary()).body).toMatchObject({ peakScore: 70, peakAt: t0 + 30000 });
+  });
+
+  it('never lowers a stored peak', async () => {
+    const { code } = await createSession('Monotonic');
+    const { id } = findSession(code);
+    q.raisePeak.run({ id, score: 80, ts: 1000 });
+    q.raisePeak.run({ id, score: 60, ts: 2000 });
+    expect(findSession(code)).toMatchObject({ peak_score: 80, peak_at: 1000 });
+  });
+
   it('returns zeroed stats for a session with no data', async () => {
     const { code, hostToken } = await createSession();
     const res = await request(app).get(`/api/sessions/${code}/summary`).set('x-host-token', hostToken);

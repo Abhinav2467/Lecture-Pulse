@@ -88,6 +88,13 @@ export function buildSummary(session, now = Date.now()) {
     if (!peak || point.score > peak.score) peak = point;
   }
 
+  // The timeline is sampled every 15s and can miss a short spike; the peak stored
+  // on the session row is tracked on every 2s pulse, so prefer it. The timeline
+  // max is the fallback (older rows) and wins only if it is somehow higher.
+  if (session.peak_score !== null && (!peak || session.peak_score >= peak.score)) {
+    peak = { score: session.peak_score, ts: session.peak_at };
+  }
+
   const topConfusionMoments = timeline
     .filter((point) => point.score > 0)
     .sort((a, b) => b.score - a.score || a.ts - b.ts)

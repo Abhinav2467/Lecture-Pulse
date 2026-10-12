@@ -1,11 +1,11 @@
 import http from 'node:http';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Server } from 'socket.io';
 import { io as connect } from 'socket.io-client';
 import { createApp } from '../src/app.js';
 import { attachSockets } from '../src/sockets.js';
 import { q } from '../src/db.js';
-import { createSession, endSession, findSession } from '../src/lib/sessionService.js';
+import { buildSummary, createSession, endSession, findSession } from '../src/lib/sessionService.js';
 
 let io;
 let sockets;
@@ -126,6 +126,50 @@ describe('socket flow', () => {
     next = waitFor(host, 'presence:update');
     tabB.disconnect();
     expect(await next).toEqual({ activeStudents: 1 });
+  });
+
+  it('keeps a peak that the 15s timeline never sampled', async () => {
+    const { code, hostToken } = createSession('Short spike');
+    const { socket: host } = await join({ role: 'host', code, hostToken });
+    const { socket: first } = await join({ role: 'student', code, clientId: 'client-peak-0001' });
+
+    // 1 LOST / 1 student = 100 ...
+    const spike = waitFor(host, 'pulse:update', (p) => p.score === 100);
+    const before = Date.now();
+    await first.emitWithAck('feedback:send', { type: 'LOST' });
+    await spike;
+
+    // ... then a second student joins and it settles at 50 before any timeline sample.
+    const settled = waitFor(host, 'pulse:update', (p) => p.score === 50);
+    await join({ role: 'student', code, clientId: 'client-peak-0002' });
+    await settled;
+
+    endSession(findSession(code));
+    const session = findSession(code);
+    expect(session.peak_score).toBe(100);
+
+    const summary = buildSummary(session);
+    expect(summary.timeline.map((p) => p.score)).toEqual([50]); // only the final sample
+    expect(summary.peakScore).toBe(100);
+    expect(summary.peakAt).toBeGreaterThanOrEqual(before);
+    expect(summary.peakAt).toBeLessThanOrEqual(session.ended_at);
+  });
+
+  it('persists the peak when the room empties before the session ends', async () => {
+    const { code, hostToken } = createSession('Empty room');
+    const { socket: host } = await join({ role: 'host', code, hostToken });
+    const { socket: student } = await join({ role: 'student', code, clientId: 'client-peak-0003' });
+
+    const spike = waitFor(host, 'pulse:update', (p) => p.score === 70);
+    await student.emitWithAck('feedback:send', { type: 'TOO_FAST' });
+    await spike;
+
+    student.disconnect();
+    host.disconnect();
+    await vi.waitFor(() => expect(findSession(code).peak_score).toBe(70));
+
+    endSession(findSession(code)); // e.g. the auto-end job, with nobody connected
+    expect(buildSummary(findSession(code))).toMatchObject({ peakScore: 70, timeline: [] });
   });
 
   it('rejects invalid feedback types', async () => {
