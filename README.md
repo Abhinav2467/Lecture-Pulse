@@ -39,7 +39,7 @@ Lecture Pulse gives every student a zero-friction, anonymous way to say *"I'm lo
 | better-sqlite3 (SQLite) | Persistent storage for sessions, feedback and the timeline |
 | nanoid | Session codes, ids and host tokens |
 | helmet, cors, express-rate-limit | Security headers, CORS and abuse protection |
-| dotenv | Environment configuration |
+| dotenv, cross-env | Environment configuration; setting `NODE_ENV` portably in npm scripts |
 | React 19 + Vite | Single-page client and dev server/bundler |
 | React Router | Client-side routing |
 | socket.io-client | Real-time client |
@@ -224,7 +224,7 @@ Starts the API on <http://localhost:4000> and the Vite dev server on <http://loc
 npm test
 ```
 
-Runs 41 tests against an in-memory database: unit tests for the score, API tests with Supertest, and socket integration tests.
+Runs 60 tests against an in-memory database: unit tests for the score, API tests with Supertest, socket integration tests, a schema-migration test and a check that npm scripts stay cross-platform.
 
 ### Simulator
 
@@ -242,7 +242,7 @@ Fake students join over the first few seconds and tap in three phases (warm-up, 
 
 ```bash
 npm run build     # builds client/dist
-npm start         # NODE_ENV=production; serves API + client on PORT (default 4000)
+npm start         # NODE_ENV=production (via cross-env, so it also works on Windows); serves API + client on PORT (default 4000)
 ```
 
 ### Environment variables
@@ -305,7 +305,10 @@ Create a session, run the simulator, and capture:
 - **Anonymous by construction.** The browser generates a random id; the server stores only `SHA-256(clientId + SERVER_SALT)`. It is enough to enforce the cooldown and count unique participants, and it cannot be traced back to a person.
 - **Participants = students who tapped.** Students who only watched leave no trace in the database, so `uniqueParticipants` counts distinct clients with at least one tap.
 - **Live counts are de-duplicated.** The `counts` in `pulse:update` use the same "latest tap per client in the window" rule as the score, so the numbers on the dashboard always explain the gauge. Summary `totals` count every accepted tap.
-- **`activeStudents` counts sockets**, as specified. A student with two tabs counts as two connected students but still has a single vote and a single cooldown (both are keyed by the hashed client id).
+- **`activeStudents` counts people, not connections.** It is the number of distinct client hashes currently connected as students, so a student with two tabs (or a phone and a laptop tab in the same browser profile) is one student. Presence, the score denominator, the vote and the cooldown are all keyed by the same hashed client id, which keeps the numerator and denominator of the score in the same unit.
+- **The peak is tracked on every pulse, not read off the chart.** The server computes the pulse every 2s for every live session (whether or not a host is watching) and remembers the highest score and when it happened. It is written to nullable `peak_score` / `peak_at` columns on the session row when the session ends, and also when the room empties, so it survives the in-memory state being dropped. The summary uses the stored peak, and falls back to the timeline maximum for sessions that have none (or in the unlikely case the timeline is higher). The write can only raise the stored value.
+- **Schema changes are additive and automatic.** `migrate()` runs on every boot: `CREATE TABLE IF NOT EXISTS` for new databases, and `ALTER TABLE ... ADD COLUMN` for any missing nullable column on existing ones. No migration tool, no data loss, safe to re-run.
+- **`cross-env` for `NODE_ENV`.** `npm start` works in Windows cmd and PowerShell as well as POSIX shells. It is a runtime dependency of the server because production installs skip dev dependencies. A test fails if any root or server script sets an environment variable without it.
 - **Cooldown keyed by client hash, not socket**, so reconnecting or opening tabs does not bypass it. The client-side ring is cosmetic and re-syncs from the server's `retryInMs`.
 - **Memory for speed, SQLite for truth.** The 120s window lives in memory; every tap is also persisted and the window is rehydrated from the database on demand. In-memory state exists only while someone is connected to an active session and is dropped as soon as the session ends.
 - **Event bus between REST and sockets.** Ending a session (via the API or the auto-end job) emits on an internal `EventEmitter`; the socket layer listens. The Express app therefore has no dependency on Socket.IO and is testable alone.
@@ -327,7 +330,22 @@ Create a session, run the simulator, and capture:
 - **Server-authoritative cooldown.** The cooldown had to hold across reconnects, multiple tabs and server restarts, which is why it is keyed by the hashed client id and rebuilt from persisted feedback.
 - **Real-time state versus persistence.** Scoring from SQLite on every tick would be wasteful; keeping everything in memory would lose data on restart. The hybrid (in-memory window, write-through persistence, lazy rehydration) needed careful clean-up rules.
 - **Testing sockets and timers.** Broadcast intervals are injectable (`attachSockets(io, { pulseIntervalMs })`) so the integration test runs in milliseconds, and each test file gets its own in-memory database.
+- **Peak sampling.** The first version took the peak from the timeline, which is sampled every 15 seconds. A spike that rose and fell between two samples (a student joining can halve the score in one tick) was simply invisible in the summary, and the reported peak could be lower than a number the lecturer had just watched on the gauge. Sampling the timeline faster would have bloated the table and the chart, so the peak is now tracked separately from the 2-second pulse computation and stored as two columns. The remaining subtlety was lifetime: in-memory state is dropped when the last socket leaves, so the peak has to be flushed at that moment too, and re-read when the state is rebuilt.
 - **Ordering of "emit then disconnect".** Rejected connections must receive `session:error` before the socket closes, so the server uses a graceful `disconnect()` after emitting instead of rejecting in middleware.
+
+## Known Limitations
+
+- **Host access is per browser.** The host token lives in `localStorage`; the dashboard and summary cannot be opened from another device, and clearing site data loses access.
+- **One person can still be several "students".** Distinct clients are distinct browser profiles. A second browser, a private window or cleared storage produces a new client id, with its own vote and cooldown. That is the price of having no accounts.
+- **Peak resolution is 2 seconds, and the chart can disagree with it.** The peak is exact to the pulse interval, but the timeline is still sampled every 15 seconds, so the peak stat may be higher than any point on the chart, and "top confusion moments" (taken from the timeline) may not include the peak instant.
+- **Mid-session summaries can lag.** The stored peak is flushed when the session ends or the room empties. A summary opened while the session is still running uses the timeline maximum until then.
+- **Sessions that ended before this change** have no stored peak and use the timeline maximum.
+- **Average confusion** is the mean of the 15-second samples, not of every pulse.
+- **Single instance only.** Live state (window, cooldowns, presence, peak) is in process memory; running several instances would need the Socket.IO Redis adapter and shared state.
+- **SQLite on ephemeral hosting** (for example Render's free tier) is wiped on restart.
+- **Rate limiting is per IP**, so many lecturers behind one campus NAT share the limit of 10 new sessions per 15 minutes.
+- **No browser-level end-to-end tests** yet; the UI is covered only by the build.
+- **Screenshots** in this README are placeholder paths.
 
 ## Future Work
 
