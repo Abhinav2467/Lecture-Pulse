@@ -1,0 +1,66 @@
+/* Design tokens. Restyle the app by editing this file only. */
+:root {
+  /* Typography */
+  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-heading: 'Chakra Petch', var(--font-body);
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.5rem;
+  --text-3xl: 4rem;
+
+  /* Surfaces */
+  --bg: #0a0e13;
+  --bg-grid: rgba(34, 211, 238, 0.035);
+  --surface: #111821;
+  --surface-2: #18212c;
+  --border: #223040;
+  --border-strong: #33465c;
+
+  /* Text */
+  --text: #e6edf3;
+  --text-muted: #8b9aab;
+  --text-on-accent: #04131a;
+
+  /* Accent (the ECG trace) */
+  --accent: #22d3ee;
+  --accent-soft: rgba(34, 211, 238, 0.14);
+  --accent-glow: rgba(34, 211, 238, 0.45);
+
+  /* Confusion levels */
+  --level-clear: #34d399;
+  --level-some: #fbbf24;
+  --level-lost: #f87171;
+
+  /* Feedback types */
+  --fb-lost: #f87171;
+  --fb-too-fast: #fb923c;
+  --fb-example: #fbbf24;
+  --fb-got-it: #34d399;
+
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  /* Shape & motion */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --focus-ring: 0 0 0 3px var(--accent-glow);
+  --transition: 180ms ease;
+  --max-width: 1120px;
+  --header-height: 60px;
+}
