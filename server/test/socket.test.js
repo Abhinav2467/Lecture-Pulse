@@ -93,6 +93,41 @@ describe('socket flow', () => {
     expect((await tabB.emitWithAck('feedback:send', { type: 'EXAMPLE' })).ok).toBe(false);
   });
 
+  it('counts distinct clients, not sockets, as active students', async () => {
+    const { code, hostToken } = createSession('Presence');
+    const { socket: host } = await join({ role: 'host', code, hostToken });
+    const presenceIs = (n) => waitFor(host, 'presence:update', (p) => p.activeStudents === n);
+    const alice = { role: 'student', code, clientId: 'client-alice-0001' };
+
+    let next = presenceIs(1);
+    const { socket: tabA } = await join(alice);
+    await next;
+
+    // Second tab of the same browser: presence is re-announced but stays at 1.
+    next = waitFor(host, 'presence:update');
+    const { socket: tabB } = await join(alice);
+    expect(await next).toEqual({ activeStudents: 1 });
+
+    next = presenceIs(2);
+    await join({ role: 'student', code, clientId: 'client-bob-00002' });
+    await next;
+
+    // The score denominator uses the same number: 1 LOST / 2 students = 50.
+    const scored = waitFor(host, 'pulse:update', (p) => p.counts.LOST === 1);
+    await tabA.emitWithAck('feedback:send', { type: 'LOST' });
+    expect(await scored).toMatchObject({ score: 50, activeStudents: 2 });
+
+    // Closing one of two tabs keeps the student in the room...
+    next = waitFor(host, 'presence:update');
+    tabA.disconnect();
+    expect(await next).toEqual({ activeStudents: 2 });
+
+    // ...closing the last one removes them.
+    next = waitFor(host, 'presence:update');
+    tabB.disconnect();
+    expect(await next).toEqual({ activeStudents: 1 });
+  });
+
   it('rejects invalid feedback types', async () => {
     const { code } = createSession('Types');
     const { socket } = await join({ role: 'student', code, clientId: 'client-cccccccc' });

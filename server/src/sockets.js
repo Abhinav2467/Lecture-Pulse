@@ -22,7 +22,7 @@ export function attachSockets(io, { pulseIntervalMs = 2000, timelineIntervalMs =
         code: session.code,
         events,
         cooldowns: new Map(events.map((event) => [event.clientHash, event.ts])),
-        students: new Set(),
+        students: new Map(), // clientHash -> Set of socket ids (one student, many tabs)
         hosts: new Set(),
       };
       live.set(session.code, state);
@@ -115,7 +115,11 @@ export function attachSockets(io, { pulseIntervalMs = 2000, timelineIntervalMs =
     const emitPresence = () =>
       io.to(hostRoom(code)).emit('presence:update', { activeStudents: state.students.size });
 
-    state.students.add(socket.id);
+    // Presence counts people, not connections: extra tabs from the same
+    // browser share one clientHash and therefore one seat in the room.
+    const tabs = state.students.get(clientHash) ?? new Set();
+    tabs.add(socket.id);
+    state.students.set(clientHash, tabs);
     socket.join(studentRoom(code));
     emitPresence();
 
@@ -146,7 +150,8 @@ export function attachSockets(io, { pulseIntervalMs = 2000, timelineIntervalMs =
     });
 
     socket.on('disconnect', () => {
-      state.students.delete(socket.id);
+      tabs.delete(socket.id);
+      if (tabs.size === 0 && state.students.get(clientHash) === tabs) state.students.delete(clientHash);
       emitPresence();
       release(state);
     });
