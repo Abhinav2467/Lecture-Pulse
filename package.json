@@ -17,9 +17,11 @@
     "build": "npm run build -w client",
     "start": "npm run start -w server",
     "test": "npm run test -w server",
-    "simulate": "node scripts/simulate.js"
+    "simulate": "node scripts/simulate.js",
+    "screenshots": "node scripts/screenshots.js"
   },
   "devDependencies": {
-    "concurrently": "^10.0.6"
+    "concurrently": "^10.0.6",
+    "playwright": "^1.64.0"
   }
 }
