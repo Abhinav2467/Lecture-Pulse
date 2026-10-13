@@ -1,5 +1,7 @@
 import { EventEmitter } from 'node:events';
-import { q } from '../db.js';
+import { db, q } from '../db.js';
+import { rankTopics, topicInsight, topicStats } from './insights.js';
+import { DEFAULT_TOPIC, emptyPollCounts, emptyReactionCounts } from './interactions.js';
 import { FEEDBACK_TYPES } from './pulse.js';
 import {
   CODE_PATTERN,
@@ -32,14 +34,14 @@ export function createSession(title) {
   const hostToken = generateHostToken();
   for (let attempt = 0; ; attempt++) {
     const code = generateCode();
+    const id = generateId();
+    const createdAt = Date.now();
     try {
-      q.insertSession.run({
-        id: generateId(),
-        code,
-        title,
-        hostTokenHash: hashToken(hostToken),
-        createdAt: Date.now(),
-      });
+      // The session and its default topic are created together or not at all.
+      db.transaction(() => {
+        q.insertSession.run({ id, code, title, hostTokenHash: hashToken(hostToken), createdAt });
+        q.insertTopic.run(id, DEFAULT_TOPIC, createdAt);
+      })();
       return { code, hostToken, title };
     } catch (err) {
       // Code collision (1 in ~10^9 per pair): just draw another one.
@@ -63,9 +65,32 @@ export function verifyHost(session, token) {
 }
 
 export function endSession(session, now = Date.now()) {
-  const { changes } = q.endSession.run(now, session.id);
-  if (changes > 0) bus.emit('session:ended', { id: session.id, code: session.code, endedAt: now });
-  return changes > 0;
+  const ended = db.transaction(() => {
+    const { changes } = q.endSession.run(now, session.id);
+    if (changes === 0) return false;
+    // Nothing stays "open" past the end of its session.
+    q.closeOpenTopics.run(now, session.id);
+    q.closeOpenAlerts.run(now, session.id);
+    q.closeOpenPolls.run(now, session.id);
+    return true;
+  })();
+  if (ended) bus.emit('session:ended', { id: session.id, code: session.code, endedAt: now });
+  return ended;
+}
+
+/**
+ * Starts a topic, closing the one before it. Starting the topic that is
+ * already current is a no-op (created: false), so a double-click or a retried
+ * request cannot split one topic into two.
+ */
+export function startTopic(sessionId, label, now = Date.now()) {
+  const open = q.openTopic.get(sessionId);
+  if (open && open.label === label) return { topic: open, created: false };
+  const id = db.transaction(() => {
+    q.closeOpenTopics.run(now, sessionId);
+    return Number(q.insertTopic.run(sessionId, label, now).lastInsertRowid);
+  })();
+  return { topic: { id, label, startedAt: now }, created: true };
 }
 
 export function endStaleSessions(now = Date.now()) {
@@ -95,6 +120,31 @@ export function buildSummary(session, now = Date.now()) {
     peak = { score: session.peak_score, ts: session.peak_at };
   }
 
+  const endTs = session.ended_at ?? now;
+  const topics = topicStats(
+    q.topics.all(session.id),
+    timeline,
+    (topic, end) => q.feedbackCountBetween.get(session.id, topic.startedAt, end).n,
+    endTs,
+  );
+  const topicRanking = rankTopics(topics);
+
+  const tallies = new Map();
+  for (const row of q.pollTallies.all(session.id)) {
+    if (!tallies.has(row.pollId)) tallies.set(row.pollId, emptyPollCounts());
+    if (row.choice in tallies.get(row.pollId)) tallies.get(row.pollId)[row.choice] = row.n;
+  }
+  const polls = q.polls.all(session.id).map((poll) => {
+    const counts = tallies.get(poll.id) ?? emptyPollCounts();
+    return { ...poll, counts, total: Object.values(counts).reduce((a, b) => a + b, 0) };
+  });
+
+  const reactions = emptyReactionCounts();
+  for (const row of q.reactions.all(session.id)) {
+    if (row.emoji in reactions) reactions[row.emoji] = row.count;
+  }
+  const alerts = q.alerts.all(session.id);
+
   const topConfusionMoments = timeline
     .filter((point) => point.score > 0)
     .sort((a, b) => b.score - a.score || a.ts - b.ts)
@@ -114,5 +164,12 @@ export function buildSummary(session, now = Date.now()) {
     avgScore: timeline.length ? Math.round(sum / timeline.length) : 0,
     timeline,
     topConfusionMoments,
+    topics,
+    topicRanking,
+    topicInsight: topicInsight(topicRanking),
+    alerts,
+    alertCount: alerts.length,
+    polls,
+    reactions,
   };
 }

@@ -39,6 +39,44 @@ export function migrate(database) {
     score      INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_timeline_session_ts ON timeline (session_id, ts);
+  CREATE TABLE IF NOT EXISTS topics (
+    id         INTEGER PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    label      TEXT NOT NULL,
+    started_at INTEGER NOT NULL,
+    ended_at   INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_topics_session ON topics (session_id, started_at);
+  CREATE TABLE IF NOT EXISTS alerts (
+    id            INTEGER PRIMARY KEY,
+    session_id    TEXT NOT NULL,
+    started_at    INTEGER NOT NULL,
+    ended_at      INTEGER,
+    dominant_type TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_alerts_session ON alerts (session_id, started_at);
+  CREATE TABLE IF NOT EXISTS polls (
+    id         INTEGER PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    question   TEXT NOT NULL,
+    started_at INTEGER NOT NULL,
+    closed_at  INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_polls_session ON polls (session_id, started_at);
+  CREATE TABLE IF NOT EXISTS poll_votes (
+    id          INTEGER PRIMARY KEY,
+    poll_id     INTEGER NOT NULL,
+    client_hash TEXT NOT NULL,
+    choice      TEXT NOT NULL,
+    ts          INTEGER NOT NULL,
+    UNIQUE (poll_id, client_hash)
+  );
+  CREATE TABLE IF NOT EXISTS reactions (
+    session_id TEXT NOT NULL,
+    emoji      TEXT NOT NULL,
+    count      INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (session_id, emoji)
+  );
 `);
 
   const existing = new Set(database.pragma('table_info(sessions)').map((column) => column.name));
@@ -84,4 +122,50 @@ export const q = {
   ),
   insertTimeline: db.prepare('INSERT INTO timeline (session_id, ts, score) VALUES (?, ?, ?)'),
   timeline: db.prepare('SELECT ts, score FROM timeline WHERE session_id = ? ORDER BY ts'),
+  feedbackCountBetween: db.prepare(
+    'SELECT COUNT(*) AS n FROM feedback WHERE session_id = ? AND ts >= ? AND ts < ?',
+  ),
+
+  insertTopic: db.prepare('INSERT INTO topics (session_id, label, started_at) VALUES (?, ?, ?)'),
+  closeOpenTopics: db.prepare('UPDATE topics SET ended_at = ? WHERE session_id = ? AND ended_at IS NULL'),
+  openTopic: db.prepare(
+    `SELECT id, label, started_at AS startedAt FROM topics
+     WHERE session_id = ? AND ended_at IS NULL ORDER BY started_at DESC, id DESC LIMIT 1`,
+  ),
+  topics: db.prepare(
+    `SELECT id, label, started_at AS startedAt, ended_at AS endedAt FROM topics
+     WHERE session_id = ? ORDER BY started_at, id`,
+  ),
+
+  insertAlert: db.prepare('INSERT INTO alerts (session_id, started_at, dominant_type) VALUES (?, ?, ?)'),
+  closeAlert: db.prepare('UPDATE alerts SET ended_at = ? WHERE id = ? AND ended_at IS NULL'),
+  closeOpenAlerts: db.prepare('UPDATE alerts SET ended_at = ? WHERE session_id = ? AND ended_at IS NULL'),
+  openAlert: db.prepare(
+    `SELECT id, started_at AS startedAt, dominant_type AS dominantType FROM alerts
+     WHERE session_id = ? AND ended_at IS NULL ORDER BY id DESC LIMIT 1`,
+  ),
+  alerts: db.prepare(
+    `SELECT started_at AS startedAt, ended_at AS endedAt, dominant_type AS dominantType FROM alerts
+     WHERE session_id = ? ORDER BY started_at, id`,
+  ),
+
+  insertPoll: db.prepare('INSERT INTO polls (session_id, question, started_at) VALUES (?, ?, ?)'),
+  closePoll: db.prepare('UPDATE polls SET closed_at = ? WHERE id = ? AND closed_at IS NULL'),
+  closeOpenPolls: db.prepare('UPDATE polls SET closed_at = ? WHERE session_id = ? AND closed_at IS NULL'),
+  polls: db.prepare(
+    `SELECT id, question, started_at AS startedAt, closed_at AS closedAt FROM polls
+     WHERE session_id = ? ORDER BY started_at, id`,
+  ),
+  insertVote: db.prepare('INSERT INTO poll_votes (poll_id, client_hash, choice, ts) VALUES (?, ?, ?, ?)'),
+  hasVoted: db.prepare('SELECT 1 AS voted FROM poll_votes WHERE poll_id = ? AND client_hash = ?'),
+  pollTallies: db.prepare(
+    `SELECT v.poll_id AS pollId, v.choice, COUNT(*) AS n FROM poll_votes v
+     JOIN polls p ON p.id = v.poll_id WHERE p.session_id = ? GROUP BY v.poll_id, v.choice`,
+  ),
+
+  addReaction: db.prepare(
+    `INSERT INTO reactions (session_id, emoji, count) VALUES (?, ?, 1)
+     ON CONFLICT (session_id, emoji) DO UPDATE SET count = count + 1`,
+  ),
+  reactions: db.prepare('SELECT emoji, count FROM reactions WHERE session_id = ?'),
 };
