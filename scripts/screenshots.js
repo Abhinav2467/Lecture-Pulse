@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Captures the README screenshots into docs/screenshots/.
+// Captures the README screenshots into screenshots/.
 //   npm run screenshots            (needs: npx playwright install chromium)
 //   npm run screenshots -- --no-build
 //
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = path.join(ROOT, 'docs', 'screenshots');
+const OUT = path.join(ROOT, 'screenshots');
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844 };
 const SIM_MINUTES = 2.5;
@@ -107,7 +107,7 @@ async function main() {
   log(`session ${code} created`);
 
   browser = await chromium.launch();
-  const desktop = await browser.newContext({ viewport: DESKTOP, deviceScaleFactor: 1 });
+  const desktop = await browser.newContext({ viewport: DESKTOP, deviceScaleFactor: 2 });
   const phone = await browser.newContext({ viewport: PHONE, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const shot = (page, name) => {
     log(`capturing ${name}`);
@@ -162,6 +162,9 @@ async function main() {
 
   // Poll: wait until the room has voted so the bars have something to show.
   await host.waitForSelector('.poll--live', { timeout: 90_000 });
+  await student.waitForSelector('.poll-overlay', { timeout: 5_000 });
+  await student.waitForTimeout(900);
+  await shot(student, 'student-poll.png');
   await host.waitForFunction(
     () => Number(document.querySelector('.poll--live .poll-foot')?.textContent.match(/\d+/)?.[0] ?? 0) >= 12,
     null,
