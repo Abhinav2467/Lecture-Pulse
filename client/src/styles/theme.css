@@ -1,66 +1,118 @@
-/* Design tokens. Restyle the app by editing this file only. */
+/* Design tokens. Every colour, size and spacing value the UI uses lives here. */
 :root {
+  /* Surfaces & text (monochrome) */
+  --bg: #000000;
+  --text: #ffffff;
+  --muted: #9a9a9a;
+  --stat: #d8d8d8;
+  --border: rgba(255, 255, 255, 0.16);
+  --border-soft: rgba(255, 255, 255, 0.12);
+  --card-bg: rgba(255, 255, 255, 0.04);
+  --card-radius: 12px;
+  --card-blur: 16px;
+  --field-bg: rgba(8, 8, 8, 0.55);
+
+  /* The only colour in the UI: confusion levels, used strictly as meaning. */
+  --level-clear: #5ad19a;
+  --level-some: #f2b84b;
+  --level-lost: #ff5d5d;
+
   /* Typography */
-  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  --font-heading: 'Chakra Petch', var(--font-body);
+  --font-ui: 'Inter Variable', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: 'Instrument Serif', 'Times New Roman', Times, serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-md: 1rem;
-  --text-lg: 1.25rem;
-  --text-xl: 1.75rem;
-  --text-2xl: 2.5rem;
-  --text-3xl: 4rem;
 
-  /* Surfaces */
-  --bg: #0a0e13;
-  --bg-grid: rgba(34, 211, 238, 0.035);
-  --surface: #111821;
-  --surface-2: #18212c;
-  --border: #223040;
-  --border-strong: #33465c;
+  /* Scale (default, ~1440px) */
+  --logo: 15.5px;
+  --logo-mark: 22px;
+  --nav: 14px;
+  --nav-h: 40px;
+  --nav-pad: 18px;
+  --nav-gap: 8px;
+  --btn: 13.5px;
+  --btn-h: 40px;
+  --btn-pad: 16px;
+  --hero-btn-h: 42px;
+  --h1: 48px;
+  --lede: 15.5px;
+  --badge: 12.5px;
+  --badge-mb: 22px;
+  --lede-mt: 18px;
+  --actions-mt: 26px;
+  --actions-gap: 10px;
+  --stat-size: 13.5px;
+  --stat-icon: 20px;
+  --header-y: 22px;
+  --header-x: 40px;
+  --stats-x: 72px;
+  --stats-y: 36px;
+  --hero-gap: 85px;
+  --copy-max: 860px;
+  --lede-max: 470px;
 
-  /* Text */
-  --text: #e6edf3;
-  --text-muted: #8b9aab;
-  --text-on-accent: #04131a;
+  /* App pages */
+  --page-max: 1320px;
+  --gap: 16px;
 
-  /* Accent (the ECG trace) */
-  --accent: #22d3ee;
-  --accent-soft: rgba(34, 211, 238, 0.14);
-  --accent-glow: rgba(34, 211, 238, 0.45);
+  /* Motion */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --focus: 0 0 0 2px #000, 0 0 0 4px #fff;
+}
 
-  /* Confusion levels */
-  --level-clear: #34d399;
-  --level-some: #fbbf24;
-  --level-lost: #f87171;
+@media (min-width: 1280px) and (max-width: 1599px) {
+  :root { --h1: 54px; --lede: 16px; --header-x: 48px; --stats-x: 80px; --copy-max: 900px; }
+}
 
-  /* Feedback types */
-  --fb-lost: #f87171;
-  --fb-too-fast: #fb923c;
-  --fb-example: #fbbf24;
-  --fb-got-it: #34d399;
+@media (min-width: 1600px) {
+  :root {
+    --logo: 17px; --logo-mark: 24px; --nav: 15px; --nav-h: 44px; --nav-pad: 20px;
+    --btn: 15px; --btn-h: 44px; --hero-btn-h: 48px; --h1: 64px; --lede: 18px;
+    --badge: 13.5px; --badge-mb: 26px; --lede-mt: 22px; --actions-mt: 30px; --actions-gap: 12px;
+    --stat-size: 15px; --stat-icon: 22px; --header-y: 28px; --header-x: 64px;
+    --stats-x: 96px; --stats-y: 44px; --copy-max: 980px; --lede-max: 540px;
+  }
+}
 
-  --danger: #f87171;
-  --danger-soft: rgba(248, 113, 113, 0.14);
+@media (min-width: 1920px) {
+  :root {
+    --logo: 18px; --logo-mark: 26px; --nav: 16px; --nav-h: 48px; --nav-pad: 22px; --nav-gap: 10px;
+    --btn: 16px; --btn-h: 48px; --btn-pad: 22px; --hero-btn-h: 52px; --h1: 76px; --lede: 20px;
+    --badge: 14.5px; --stat-size: 16px; --header-y: 32px; --header-x: 80px;
+    --stats-x: 120px; --stats-y: 52px; --copy-max: 1120px; --lede-max: 620px;
+  }
+}
 
-  /* Spacing */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.5rem;
-  --space-6: 2rem;
-  --space-7: 3rem;
-  --space-8: 4rem;
+@media (min-width: 2560px) {
+  :root { --h1: 88px; --lede: 22px; --header-x: 120px; --stats-x: 160px; --copy-max: 1280px; --lede-max: 680px; }
+}
 
-  /* Shape & motion */
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --focus-ring: 0 0 0 3px var(--accent-glow);
-  --transition: 180ms ease;
-  --max-width: 1120px;
-  --header-height: 60px;
+@media (min-width: 901px) and (max-width: 1279px) {
+  :root {
+    --logo: 15px; --nav: 13px; --nav-h: 36px; --nav-pad: 14px; --btn: 13px; --btn-h: 38px;
+    --hero-btn-h: 40px; --h1: 42px; --lede: 15px; --badge: 12px; --badge-mb: 16px;
+    --lede-mt: 14px; --actions-mt: 20px; --stat-size: 12.5px; --header-y: 16px; --header-x: 28px;
+    --stats-x: 36px; --stats-y: 28px; --hero-gap: 64px; --copy-max: 760px; --lede-max: 440px;
+  }
+}
+
+/* Short desktop windows: only the landing page is height-locked, so only it shrinks. */
+@media (min-width: 901px) and (max-height: 850px) {
+  html.landing { --header-y: 14px; --stats-y: 24px; --hero-gap: 48px; --h1: 40px; --badge-mb: 12px; --lede-mt: 12px; --actions-mt: 16px; }
+}
+
+@media (min-width: 901px) and (max-height: 720px) {
+  html.landing { --h1: 34px; --lede: 14px; --hero-gap: 32px; --stats-y: 18px; --nav-h: 30px; --btn-h: 34px; --hero-btn-h: 36px; --badge-mb: 8px; }
+}
+
+@media (max-width: 900px) {
+  :root {
+    --logo: 16px; --btn: 15px; --btn-h: 46px; --hero-btn-h: 48px; --h1: 36px; --lede: 16.5px;
+    --badge: 13.5px; --stat-size: 15px; --header-y: 16px; --header-x: 18px;
+    --stats-x: 20px; --stats-y: 28px; --hero-gap: 36px; --copy-max: 100%; --lede-max: 100%;
+    --gap: 12px;
+  }
+}
+
+@media (max-width: 560px) {
+  :root { --h1: 34px; --lede: 16px; --header-x: 16px; }
 }

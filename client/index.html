@@ -2,16 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0a0e13" />
-    <meta name="description" content="Anonymous real-time lecture feedback with a live confusion meter." />
-    <title>Lecture Pulse</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Anonymous one-tap feedback from students and a live confusion meter for the lecturer." />
+    <title>Lecture Pulse — Live Classroom Feedback</title>
+    <!-- Painted before any stylesheet loads, so the page can never flash white. -->
+    <style>
+      html, body { background: #000000 !important; color: #ffffff; }
+    </style>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='1.5' y='6' width='21' height='12' rx='6' fill='white'/%3E%3Cpolyline points='5,12 8.6,12 10.3,8.8 12.7,15.4 14.4,10.6 15.4,12 19,12' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
   </head>
-  <body>
+  <body style="background:#000;color:#fff">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
