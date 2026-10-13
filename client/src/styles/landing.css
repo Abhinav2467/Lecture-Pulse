@@ -1,0 +1,140 @@
+/* Landing page: one frame on desktop (header / bottom-centred hero / stats). */
+
+/* Full-bleed background layer, behind .page. */
+.hero-photo {
+  position: fixed;
+  inset: 0;
+  /* Negative inside .page's stacking context: behind every in-flow element, still above <body>. */
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: #000;
+}
+
+.hero-photo video,
+.hero-photo canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hero-photo video { object-fit: cover; }
+
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 8px 24px var(--hero-gap);
+  min-height: 0;
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: var(--copy-max);
+  width: 100%;
+}
+
+.hero-copy .badge { margin-bottom: var(--badge-mb); }
+
+.headline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: var(--h1);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.12;
+  color: #fff;
+}
+
+.headline-line { display: block; overflow: hidden; padding: 0.06em 0.15em 0.14em; }
+.headline-line > span { display: block; }
+
+.headline em {
+  display: inline-block;
+  font-size: 1.08em;
+  letter-spacing: -0.03em;
+  color: #9a9a9a;
+  padding-right: 0.06em;
+}
+
+.lede {
+  max-width: var(--lede-max);
+  margin-top: var(--lede-mt);
+  color: #9a9a9a;
+  font-size: var(--lede);
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: -0.015em;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--actions-gap);
+  margin-top: var(--actions-mt);
+}
+
+.hero-join { display: flex; flex-direction: column; align-items: center; }
+
+.hero-error {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-1 * var(--hero-gap) + 14px);
+  min-height: 1.3em;
+  color: #ffb3b3;
+  font-size: 13px;
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 var(--stats-x) var(--stats-y);
+  padding-bottom: max(var(--stats-y), env(safe-area-inset-bottom));
+  color: #d8d8d8;
+}
+
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: var(--stat-size);
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+.stat svg { width: var(--stat-icon); height: var(--stat-icon); flex: none; color: #e8e8e8; }
+
+/* Desktop lock: exactly one viewport, no scroll. */
+@media (min-width: 901px) {
+  html.landing,
+  html.landing body { height: 100%; overflow: hidden; }
+  html.landing .page { height: 100vh; height: 100dvh; overflow: hidden; }
+}
+
+@media (max-width: 900px) {
+  html.landing,
+  html.landing body { height: auto; overflow-y: auto; }
+  .hero { padding: 20px 20px 64px; }
+  .stats { flex-direction: column; justify-content: center; gap: 16px; }
+  .stat { white-space: normal; }
+  .hero-error { position: static; margin-top: 10px; }
+}
+
+@media (max-width: 560px) {
+  .hero-actions { flex-direction: column; align-items: stretch; width: 100%; }
+  .hero-actions .btn, .hero-join, .hero-join .join-field { width: 100%; }
+  .hero-join .join-field input { flex: 1; width: auto; text-align: center; padding-left: 40px; }
+}
