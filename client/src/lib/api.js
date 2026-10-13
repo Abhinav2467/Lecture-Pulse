@@ -22,6 +22,7 @@ async function request(path, { method = 'GET', body, hostToken } = {}) {
 }
 
 export const api = {
+  getHealth: () => request('/health'),
   createSession: (title) => request('/sessions', { method: 'POST', body: { title } }),
   getSession: (code) => request(`/sessions/${code}`),
   endSession: (code, hostToken) => request(`/sessions/${code}/end`, { method: 'POST', hostToken }),

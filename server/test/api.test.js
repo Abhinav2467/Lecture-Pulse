@@ -15,7 +15,13 @@ describe('GET /api/health', () => {
   it('responds ok', async () => {
     const res = await request(app).get('/api/health');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ ok: true });
+    expect(res.body.ok).toBe(true);
+  });
+
+  it('reports a LAN address outside production', async () => {
+    const res = await request(app).get('/api/health');
+    expect(res.body).toHaveProperty('lan');
+    if (res.body.lan !== null) expect(res.body.lan).toMatch(/^\d{1,3}(\.\d{1,3}){3}$/);
   });
 });
 

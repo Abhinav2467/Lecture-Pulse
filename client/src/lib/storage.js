@@ -59,7 +59,7 @@ export function setHostSessionTitle(code, title) {
   write(SESSIONS_KEY, getHostSessions().map((s) => (s.code === code ? { ...s, title } : s)));
 }
 
-export const hostLink = (code, hostToken) => `${window.location.origin}/host/${code}#t=${hostToken}`;
+export const hostLink = (code, hostToken, origin = window.location.origin) => `${origin}/host/${code}#t=${hostToken}`;
 
 /**
  * Host-link import: /host/CODE#t=<hostToken>.
