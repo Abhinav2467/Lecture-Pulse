@@ -1,0 +1,27 @@
+# Render blueprint: one web service runs the API, Socket.IO and the built client.
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: lecture-pulse
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      # The client is built with Vite, a devDependency: make sure `npm install`
+      # keeps devDependencies even when NODE_ENV=production during the build.
+      - key: NPM_CONFIG_INCLUDE
+        value: dev
+      # Secret mixed into every student id hash. Generated once, then kept.
+      - key: SERVER_SALT
+        generateValue: true
+      # NOTE: the free tier has no persistent disk. This file is wiped on every
+      # deploy and restart. Attach a disk and point DB_PATH at it to keep data.
+      - key: DB_PATH
+        value: ./data/pulse.db
+      # Your service URL, e.g. https://lecture-pulse.onrender.com (set in the dashboard).
+      - key: CLIENT_ORIGIN
+        sync: false
