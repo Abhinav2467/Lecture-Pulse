@@ -1,29 +1,28 @@
 import { useState } from 'react';
+import Button from './ui/Button.jsx';
+import Modal from './ui/Modal.jsx';
 
-// Two-step inline confirm instead of a modal.
 export default function EndSessionButton({ onConfirm, busy = false, error = null }) {
   const [confirming, setConfirming] = useState(false);
 
   return (
-    <div className="end-box">
-      {confirming ? (
-        <>
-          <p className="muted">End the session for everyone? This cannot be undone.</p>
-          <div className="row">
-            <button type="button" className="btn btn--danger" disabled={busy} onClick={onConfirm}>
-              {busy ? 'Ending…' : 'Yes, end session'}
-            </button>
-            <button type="button" className="btn btn--ghost" disabled={busy} onClick={() => setConfirming(false)}>
-              Cancel
-            </button>
+    <>
+      <Button variant="ghost" block className="btn-danger" onClick={() => setConfirming(true)}>
+        End session
+      </Button>
+      {confirming && (
+        <Modal
+          title={<>End the <em>session?</em></>}
+          description="Students are disconnected and no more feedback is accepted. You get the summary straight away. This cannot be undone."
+          onClose={() => !busy && setConfirming(false)}
+        >
+          <p className="form-error" role="alert">{error}</p>
+          <div className="modal-actions">
+            <Button variant="ghost" disabled={busy} onClick={() => setConfirming(false)}>Keep going</Button>
+            <Button disabled={busy} onClick={onConfirm}>{busy ? 'Ending…' : 'End session'}</Button>
           </div>
-        </>
-      ) : (
-        <button type="button" className="btn btn--danger btn--block" onClick={() => setConfirming(true)}>
-          End session
-        </button>
+        </Modal>
       )}
-      {error && <p className="form-error" role="alert">{error}</p>}
-    </div>
+    </>
   );
 }

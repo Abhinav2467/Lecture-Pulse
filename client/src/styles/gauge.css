@@ -1,0 +1,72 @@
+/* Semicircle confusion gauge. Level colour appears on the arc only. */
+.gauge {
+  --gauge-color: var(--level-clear);
+  --beat: 3.2s;
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+.gauge svg { display: block; width: 100%; overflow: visible; }
+.gauge-track, .gauge-value { fill: none; stroke-width: 9; }
+.gauge-track { stroke: rgba(255, 255, 255, 0.09); stroke-linecap: round; }
+
+.gauge-value {
+  stroke: var(--gauge-color);
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.9s var(--ease), stroke 0.5s ease;
+}
+
+/* The arc "breathes": the host page shortens --beat as the score rises. */
+.gauge-glow {
+  animation: breathe var(--beat) ease-in-out infinite;
+  filter: drop-shadow(0 0 7px var(--gauge-color));
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+
+.gauge-ticks line { stroke: rgba(255, 255, 255, 0.28); stroke-width: 1; }
+
+.gauge-readout {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gauge-score {
+  font-size: clamp(56px, 6.2vw, 84px);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+.gauge-level {
+  margin-top: 2px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: clamp(20px, 2vw, 26px);
+  letter-spacing: -0.02em;
+  color: var(--stat);
+  white-space: nowrap;
+}
+
+.gauge--sm { max-width: 260px; }
+.gauge--sm .gauge-score { font-size: 52px; }
+.gauge--sm .gauge-level { font-size: 20px; }
+
+.gauge--xl { max-width: 560px; }
+.gauge--xl .gauge-score { font-size: clamp(80px, 9vw, 140px); }
+.gauge--xl .gauge-level { font-size: clamp(26px, 2.6vw, 40px); }
+
+@media print {
+  .gauge-glow { filter: none; }
+}

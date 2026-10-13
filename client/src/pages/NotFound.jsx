@@ -1,10 +1,12 @@
-import { Link } from 'react-router-dom';
 import StateScreen from '../components/StateScreen.jsx';
+import Button from '../components/ui/Button.jsx';
 
 export default function NotFound() {
   return (
-    <StateScreen icon="🫥" title="Page not found" message="Flatline. There is nothing at this address.">
-      <Link className="btn btn--primary" to="/">Back to home</Link>
-    </StateScreen>
+    <main className="main">
+      <StateScreen icon="search" title={<>Page <em>not found</em></>} message="Flatline. There is nothing at this address.">
+        <Button to="/">Back to home</Button>
+      </StateScreen>
+    </main>
   );
 }

@@ -1,5 +1,6 @@
 const CLIENT_ID_KEY = 'lp:clientId';
 const SESSIONS_KEY = 'lp:hostSessions';
+const SOUND_KEY = 'lp:alertSound';
 
 function read(key, fallback) {
   try {
@@ -53,3 +54,28 @@ export function saveHostSession({ code, hostToken, title }) {
 }
 
 export const getHostToken = (code) => getHostSessions().find((s) => s.code === code)?.hostToken ?? null;
+
+export function setHostSessionTitle(code, title) {
+  write(SESSIONS_KEY, getHostSessions().map((s) => (s.code === code ? { ...s, title } : s)));
+}
+
+export const hostLink = (code, hostToken) => `${window.location.origin}/host/${code}#t=${hostToken}`;
+
+/**
+ * Host-link import: /host/CODE#t=<hostToken>.
+ * The token rides in the URL fragment, which browsers never send to the server
+ * (so it stays out of access logs and Referer headers). It is stored like a
+ * locally created session and the fragment is removed from the address bar
+ * and history straight away. Returns the imported token, or null.
+ */
+export function importHostToken(code) {
+  const match = /^#t=([\w-]{16,64})$/.exec(window.location.hash);
+  if (!match) return null;
+  const hostToken = match[1];
+  if (getHostToken(code) !== hostToken) saveHostSession({ code, hostToken, title: `Session ${code}` });
+  window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+  return hostToken;
+}
+
+export const getAlertSound = () => read(SOUND_KEY, false) === true;
+export const setAlertSound = (on) => write(SOUND_KEY, Boolean(on));

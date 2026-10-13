@@ -11,9 +11,9 @@ export default function CooldownRing({ active, progress, remainingMs }) {
       aria-label={active ? `Next tap in ${seconds} seconds` : 'Ready to send feedback'}
     >
       <svg viewBox="0 0 100 100" aria-hidden="true">
-        <circle className="cooldown__track" cx="50" cy="50" r={RADIUS} />
+        <circle className="cooldown-track" cx="50" cy="50" r={RADIUS} />
         <circle
-          className="cooldown__progress"
+          className="cooldown-progress"
           cx="50"
           cy="50"
           r={RADIUS}
@@ -21,7 +21,7 @@ export default function CooldownRing({ active, progress, remainingMs }) {
           strokeDashoffset={CIRCUMFERENCE * (1 - (active ? progress : 1))}
         />
       </svg>
-      <span className="cooldown__label" aria-hidden="true">{active ? `${seconds}s` : 'Ready'}</span>
+      <span className="cooldown-label" aria-hidden="true">{active ? `${seconds}s` : 'Ready'}</span>
     </div>
   );
 }
